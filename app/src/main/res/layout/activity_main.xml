@@ -45,7 +45,7 @@
         <ImageView
             android:id="@+id/cover"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="200dp"
             android:src="@drawable/default_music_cover"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -145,6 +145,19 @@
             />
     </TableRow>
 
+    <TableRow
+        android:gravity="center_horizontal"
+        android:id="@+id/seekbar_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+
+        <SeekBar
+            android:id="@+id/seekbar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"></SeekBar>
+    </TableRow>
 
 
 </TableLayout>

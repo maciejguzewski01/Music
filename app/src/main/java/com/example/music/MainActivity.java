@@ -2,33 +2,28 @@ package com.example.music;
 
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import android.Manifest;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.File;
+import android.widget.SeekBar;
 
 public class MainActivity extends AppCompatActivity {
 
     private int nowPlay=0; //number of song now to be played
     private int songFragment=0; //it is used to determinate from where song should start after pause
+    private int songProgress=0; //it is used to determinate position of seekbar
 
     private MediaPlayer mediaPlayer;
     boolean isPlaying=false;
@@ -50,12 +45,17 @@ public class MainActivity extends AppCompatActivity {
 
     private Uri filesUri[];  //table with Uris of music files
 
+    private SeekBar seekBar;
+
+    private Handler handler;
+    private Runnable runnable;
 
 
 
     //in second phase here user will be choosing folder with music, for now path is explicit
     private void choose_folder()
     {
+
 
         //"/storage/emulated/0/Music/Muzyka"
         //"/storage/emulated/0/Download"
@@ -131,6 +131,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
+            //handler is used to update position of seekBar
+            handler = new Handler();
+            runnable = new Runnable() {
+                @Override
+                public void run() {
+                    if(isPlaying==false) return;
+                    songFragment=mediaPlayer.getCurrentPosition();
+                    double fragment_d=(100.0*songFragment)/mediaPlayer.getDuration();
+                    int fragment= ((int) fragment_d);
+                    seekBar.setProgress(fragment);
+                    handler.postDelayed(this, 1000);
+
+                }
+            };
+            handler.postDelayed(runnable, 200);
+
             mediaPlayer.seekTo(songFragment);
             mediaPlayer.start();
             isPlaying=true;
@@ -151,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
             info(num);
 
+
         }
         else //music is playing
         {
@@ -167,32 +184,30 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
 
-        buttonSettings= findViewById(R.id.settings_button);
+        buttonSettings = findViewById(R.id.settings_button);
         buttonPlaylists = findViewById(R.id.playlists_button);
-        buttonPlay= findViewById(R.id.play_button);
-        buttonNext= findViewById(R.id.next_button);
-        buttonPrevious= findViewById(R.id.previous_button);
+        buttonPlay = findViewById(R.id.play_button);
+        buttonNext = findViewById(R.id.next_button);
+        buttonPrevious = findViewById(R.id.previous_button);
 
-        textTitle= findViewById(R.id.song_title);
-        textArtist= findViewById(R.id.artist_name);
-        textAlbum= findViewById(R.id.album_name);
+        textTitle = findViewById(R.id.song_title);
+        textArtist = findViewById(R.id.artist_name);
+        textAlbum = findViewById(R.id.album_name);
 
-        imageCover= findViewById(R.id.cover);
-        isPlaying=false;
-
-
-
+        imageCover = findViewById(R.id.cover);
+        seekBar = findViewById(R.id.seekbar);
+        isPlaying = false;
 
 
-        if(isChosen==false)
-        {
+
+
+        if (isChosen == false) {
             Context context = getApplicationContext();
             CharSequence text = "Wybierz Folder!";
             int duration = Toast.LENGTH_LONG;
@@ -202,12 +217,14 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+
+
         //settings- for now it does nothing except choosing the (explicit coded) folder
         buttonSettings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                 choose_folder();
+                choose_folder();
             }
         });
 
@@ -217,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if(isChosen==false) return;
+                if (isChosen == false) return;
 
                 play(nowPlay);
 
@@ -230,16 +247,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if(isChosen==false) return;
+                if (isChosen == false) return;
 
-                if(nowPlay+1< filesUri.length) nowPlay++;
-                else nowPlay=0;
+                if (nowPlay + 1 < filesUri.length) nowPlay++;
+                else nowPlay = 0;
 
                 mediaPlayer.pause();
-                isPlaying=false;
+                isPlaying = false;
                 buttonPlay.setImageResource(R.drawable.play_button);
-             info(nowPlay);
-                newSong=true;
+                info(nowPlay);
+                newSong = true;
+                play(nowPlay);
 
             }
         });
@@ -250,23 +268,53 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if(isChosen==false) return;
+                if (isChosen == false) return;
 
-                if(nowPlay-1>=0) nowPlay--;
-                else nowPlay= filesUri.length-1;
+                if (nowPlay - 1 >= 0) nowPlay--;
+                else nowPlay = filesUri.length - 1;
 
                 mediaPlayer.pause();
-                isPlaying=false;
+                isPlaying = false;
                 buttonPlay.setImageResource(R.drawable.play_button);
                 info(nowPlay);
-                newSong=true;
+                newSong = true;
+                play(nowPlay);
+            }
+        });
+
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress,
+                                          boolean fromUser) {
+                if (isChosen == false) return;
+            songProgress=progress; //progress of seekbar== progress of song (file)
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                if (isChosen == false) return;
+
+
+                int fullLength=mediaPlayer.getDuration(); //full length of song (file)
+
+               songFragment=(songProgress*fullLength)/100;  //it determinate at which fraction of song seekbar was placed
+
+                songProgress=0;
+                mediaPlayer.seekTo(songFragment);
+                mediaPlayer.getCurrentPosition();
+
             }
         });
 
 
 
-    }
 
+
+    }
 
 }
 
