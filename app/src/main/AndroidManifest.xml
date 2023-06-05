@@ -34,9 +34,18 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.example.music.Playlists"
+            android:label="playlist" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.music.MainActivity" />
+        </activity>
 
 
-</application>
+
+
+    </application>
 
 
 </manifest>
