@@ -1,7 +1,4 @@
 package com.example.music;
-
-
-
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -10,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import android.Manifest;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -21,11 +19,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.View;
 import android.widget.Button;
@@ -33,100 +29,45 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Vector;
 import android.widget.SeekBar;
-import android.Manifest.permission;
 import androidx.media.session.MediaButtonReceiver;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Mode mode; //mode of queue
-    private int nowPlay = 0; //number of song now to be played
-    private int nowPlayIdx=0;
-    private int songFragment = 0; //it is used to determinate from where song should start after pause
-    private int songProgress = 0; //it is used to determinate position of seekbar
+    private int songProgress = 0;
 
-    private MediaPlayer mediaPlayer; //mediaPlayer
-    boolean isPlaying = false;  //the song is playing
-    boolean isChosen = false; //the folder was chosen
-    boolean newSong = false; //new song was played
+    private Button buttonSettings;
+    private Button buttonPlaylists;
+    private ImageButton buttonPlay;
+    private ImageButton buttonNext;
+    private ImageButton buttonPrevious;
+    private ImageButton buttonPlayType;
+    private ImageButton buttonYT;
 
-    private Button buttonSettings;  //in first phase it will be used only to determinate folder with music
-    private Button buttonPlaylists; //it will be used in second phase
-    private ImageButton buttonPlay;  //play- pause button
-    private ImageButton buttonNext; //next song button
-    private ImageButton buttonPrevious; //previous song button
-    private ImageButton buttonPlayType; //button to determinate if songs are on random on order mode
-    private ImageButton buttonYT; //button to open youtube and search for the song
+    private TextView textTitle;
+    private TextView textArtist;
+    private TextView textAlbum;
 
-    private TextView textTitle;  //title of song
-    private TextView textArtist; //name of artist
-    private TextView textAlbum; //name of album
+    private ImageView imageCover;
 
-    private ImageView imageCover;  //cover of album
+    private SeekBar seekBar;
 
-    private List<Uri> chosen_playlist= new ArrayList<>();
-    private int chosen_playlist_number=0;
+    private Context con = this;
+    private NotificationChannel channel;
+    private NotificationManager notificationManager1;
 
-    private Vector<Integer> randomVector;  //vector with random order of songs
-    private int nowPlayRandom = 0; //number of now played song in random mode
-
-     private Vector<Uri> filesUri; //vector with uri of files in chosen folder
-
-    private SeekBar seekBar; //seekbar
-
-    private Handler handler; //handler to update position of seekbar
-    private Runnable runnable; //runnable to update position of seekbar
-
-    private Context con = this; //context of class
-    private NotificationChannel channel;  //notification channel
-    private NotificationManager notificationManager1;  //notification manager
-
-//strings used in intents in notification
     private  String ACTION_PREVIOUS = "com.example.music.action.PREVIOUS";
     private  String ACTION_PLAY_PAUSE = "com.example.music.action.PLAY_PAUSE";
     private  String ACTION_NEXT = "com.example.music.action.NEXT";
 
 
-    private Playlists playlists=new Playlists();
-
     private Permissions permissions= new Permissions();
     private Introduction introduction = new Introduction(this);
+    private PlayManager playManager = new PlayManager(this);
 
 
-    //extracts meta data from music file (name of song, artist, album and album cover) and displays them
-    private void info(int num) {
-        MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
-        metadataRetriever.setDataSource(this, filesUri.get(num));
-
-        String songTitle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-        String artistName = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-        String albumName = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
-
-        byte[] cover = metadataRetriever.getEmbeddedPicture();
-        Bitmap bitmap = null;
-        if (cover != null) {
-            bitmap = BitmapFactory.decodeByteArray(cover, 0, cover.length);
-        }
-
-        textTitle.setText(songTitle);
-        textArtist.setText(artistName);
-        textAlbum.setText(albumName);
-        imageCover.setImageBitmap(bitmap);
-    }
-
-
-
-
-
-
-
-    //displays notification
-    private void notification() {
-        if (isChosen == true) {
+    public void notification() {
+        if (playManager.getIsChosen() == true) {
 
             Intent intent = new Intent();
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
@@ -134,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
             MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
 
-            metadataRetriever.setDataSource(this, filesUri.get(nowPlay));
+            metadataRetriever.setDataSource(this, playManager.getFilesUri().get(playManager.getNowPlay()));
             String tittle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
             String artist = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
 
@@ -165,26 +106,26 @@ public class MainActivity extends AppCompatActivity {
 
 
             int play_pause_icon;
-            if(isPlaying==true) play_pause_icon=R.mipmap.pause;
-             else play_pause_icon=R.mipmap.play;
+            if(playManager.getIsPlaying()==true) play_pause_icon=R.mipmap.pause;
+            else play_pause_icon=R.mipmap.play;
 
-                Notification notification = new NotificationCompat.Builder(this, "not_chan_1")
-                        .setLargeIcon(bitmap)
-                        .setSmallIcon(R.mipmap.default_music_cover)
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                        .setStyle(new androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2).setShowCancelButton(true)
-                                .setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this,   PlaybackStateCompat.ACTION_STOP)))
-                        .addAction(R.mipmap.previous, "Previous", prevPendingIntent)
-                        .addAction(play_pause_icon, "Pause", pausePendingIntent)
-                        .addAction(R.mipmap.next, "Next", nextPendingIntent)
-                        .setContentTitle(tittle)
-                        .setContentText(artist)
-                        .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP))
-                        .build();
+            Notification notification = new NotificationCompat.Builder(this, "not_chan_1")
+                    .setLargeIcon(bitmap)
+                    .setSmallIcon(R.mipmap.default_music_cover)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setStyle(new androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2).setShowCancelButton(true)
+                            .setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this,   PlaybackStateCompat.ACTION_STOP)))
+                    .addAction(R.mipmap.previous, "Previous", prevPendingIntent)
+                    .addAction(play_pause_icon, "Pause", pausePendingIntent)
+                    .addAction(R.mipmap.next, "Next", nextPendingIntent)
+                    .setContentTitle(tittle)
+                    .setContentText(artist)
+                    .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP))
+                    .build();
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-            if (ActivityCompat.checkSelfPermission(this, permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
 
                 return;
             }
@@ -200,29 +141,13 @@ public class MainActivity extends AppCompatActivity {
         String action = intent.getAction();
 
         if(action==ACTION_PREVIOUS) {
-            previous_song();
+            playManager.previous_song();
         } else if (action==ACTION_PLAY_PAUSE) {
-           play_pause_song();
+            playManager.play_pause_song();
         } else if (action==ACTION_NEXT) {
-            next_song();
+            playManager.next_song();
         }
     }
-
-
-
-    //generates random queue
-    private void generate_random_order()
-    {
-        randomVector= new Vector<>();
-
-        int size=filesUri.size();
-        for(int i=0;i<size;++i)
-        {
-            randomVector.add(i);
-        }
-        Collections.shuffle(randomVector);
-    }
-
 
 
 
@@ -245,8 +170,10 @@ public class MainActivity extends AppCompatActivity {
 
         imageCover = findViewById(R.id.cover);
         seekBar = findViewById(R.id.seekbar);
-        isPlaying = false;
-        mode = Mode.ORDER;
+        playManager.setIsPlaying(false);
+        playManager.setMode(Mode.ORDER);
+
+        playManager.intro(seekBar,buttonPlay,textTitle,textArtist,textAlbum,imageCover);
 
 
 
@@ -260,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        if (isChosen == false) {
+        if (playManager.getIsChosen() == false) {
             Context context = getApplicationContext();
             CharSequence text = "Wybierz Folder!";
             int duration = Toast.LENGTH_LONG;
@@ -277,18 +204,18 @@ public class MainActivity extends AppCompatActivity {
                             Intent data = result.getData();
 
                             introduction.handleActivityResult(data);
-                            isChosen = introduction.getIsChosen();
-                            filesUri = new Vector<Uri>();
-                            filesUri=introduction.getFilesUri();
+                            playManager.setIsChosen(introduction.getIsChosen());
+                            //filesUri = new Vector<Uri>();
+                            //filesUri=introduction.getFilesUri();
+                            playManager.setFilesUri(introduction.getFilesUri());
 
-                            if (filesUri != null) {
-                                info(0);
+                            if ( playManager.getFilesUri() != null) {
+                                playManager.info(0);
                             }
                         }
                     }
                 }
         );
-            //settings- for now it does nothing except choosing the (explicit coded) folder
             buttonSettings.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -298,38 +225,34 @@ public class MainActivity extends AppCompatActivity {
             });
 
 
-            //play/pause button
             buttonPlay.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
 
 
-                    play_pause_song();
+                    playManager.play_pause_song();
                     notification();
                 }
             });
 
-            //next song
             buttonNext.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    next_song();
+                    playManager.next_song();
                 }
             });
 
-            //previous song
             buttonPrevious.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    previous_song();
+                    playManager.previous_song();
                 }
             });
 
-             //seekBar
             seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (isChosen == false) return;
+                    if (playManager.getIsChosen() == false) return;
                     songProgress = progress; //progress of seekbar== progress of song (file)
                 }
 
@@ -338,50 +261,48 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    if (isChosen == false) return;
-                    if (isPlaying == false) return;
+                    if (playManager.getIsChosen() == false) return;
+                    if(playManager.getIsPlaying()==false) return;
 
-                    int fullLength = mediaPlayer.getDuration(); //full length of song (file)
+                    int fullLength = playManager.getMediaPlayer().getDuration();
 
-                    songFragment = (songProgress * fullLength) / 100;  //it determinate at which fraction of song seekbar was placed
+                    playManager.setSongFragment((songProgress * fullLength) / 100);
 
                     songProgress = 0;
-                    mediaPlayer.seekTo(songFragment);
-                    mediaPlayer.getCurrentPosition();
+                    playManager.getMediaPlayer().seekTo(playManager.getSongFragment());
+                    playManager.getMediaPlayer().getCurrentPosition();
                 }
             });
 
 
-            //mode (random/ order)
             buttonPlayType.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
 
-                    if (mode == Mode.ORDER) {
-                        mode = Mode.RANDOM;
+                    if (playManager.getMode() == Mode.ORDER) {
+                        playManager.setMode(Mode.RANDOM);
                         buttonPlayType.setImageResource(R.drawable.random);
-                        if (isChosen == true) generate_random_order();
-                    } else if(mode==Mode.RANDOM) {
-                        mode = Mode.PLAYLIST;
+                        if (playManager.getIsChosen() == true) playManager.generate_random_order();
+                    } else if(playManager.getMode()==Mode.RANDOM) {
+                        playManager.setMode(Mode.PLAYLIST);
                         buttonPlayType.setImageResource(R.drawable.playlists_mode);
                     }
                     else //(mode==PLAYLIST)
                     {
-                        mode = Mode.ORDER;
+                        playManager.setMode(Mode.ORDER);
                         buttonPlayType.setImageResource(R.drawable.order);
                     }
                 }
             });
 
 
-            //yt open
             buttonYT.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if (isChosen == false) return;
+                    if (playManager.getIsChosen() == false) return;
                     MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
 
-                    metadataRetriever.setDataSource(con, filesUri.get(nowPlay));
+                    metadataRetriever.setDataSource(con, playManager.getFilesUri().get(playManager.getNowPlay()));
                     String tittle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
                     String artist = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
 
@@ -395,302 +316,16 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-            //
         buttonPlaylists.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-
-
-                //Intent intent = new Intent(MainActivity.this, Playlists.class);
                 Intent intent = new Intent(MainActivity.this, Playlists.class);
                 startActivityForResult(intent,1);
-               // chosen_playlist_number= playlists.get_song_number();
-             //  chosen_playlist=playlists.get_playlist();
             }
         });
 
 
         }
-
-
-
-
-
-
-    private void play_from_uri(Uri uri)
-    {
-        if (isPlaying == false) //music is not playing
-        {
-            if ((mediaPlayer == null) || (newSong == true)) {
-                mediaPlayer = MediaPlayer.create(MainActivity.this, uri);
-                newSong = false;
-                songFragment = 0;
-            }
-
-
-            //handler is used to update position of seekBar
-            handler = new Handler();
-            runnable = new Runnable() {
-                @Override
-                public void run() {
-                    if (isPlaying == false) return;
-                    songFragment = mediaPlayer.getCurrentPosition();
-                    double fragment_d = (100.0 * songFragment) / mediaPlayer.getDuration();
-                    int fragment = ((int) fragment_d);
-                    seekBar.setProgress(fragment);
-                    handler.postDelayed(this, 1000);
-
-                }
-            };
-            handler.postDelayed(runnable, 200);
-
-            mediaPlayer.seekTo(songFragment);
-            mediaPlayer.start();
-            isPlaying = true;
-            buttonPlay.setImageResource(R.drawable.pause_button);
-
-
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mediaPlayer) {
-
-
-
-
-                    if(chosen_playlist_number+1<chosen_playlist.size()) chosen_playlist_number++;
-                    else chosen_playlist_number = 0;
-                    newSong = true;
-                    play_from_uri(chosen_playlist.get(chosen_playlist_number));
-
-
-
-                }
-            });
-
-            MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
-
-            metadataRetriever.setDataSource(this, uri);
-
-            String songTitle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-            String artistName = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-            String albumName = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
-
-            byte[] cover = metadataRetriever.getEmbeddedPicture();
-            Bitmap bitmap = null;
-            if (cover != null) {
-                bitmap = BitmapFactory.decodeByteArray(cover, 0, cover.length);
-            }
-
-            textTitle.setText(songTitle);
-            textArtist.setText(artistName);
-            textAlbum.setText(albumName);
-            imageCover.setImageBitmap(bitmap);
-
-
-        } else //music is playing
-        {
-            mediaPlayer.pause();
-            isPlaying = false;
-            buttonPlay.setImageResource(R.drawable.play_button);
-            songFragment = mediaPlayer.getCurrentPosition();
-        }
-
-        notification();
-    }
-
-
-    //plays song of given number
-    private void play(int num) {
-
-        if (isPlaying == false) //music is not playing
-        {
-            if ((mediaPlayer == null) || (newSong == true)) {
-                mediaPlayer = MediaPlayer.create(MainActivity.this, filesUri.get(num));
-                newSong = false;
-                songFragment = 0;
-            }
-
-
-            //handler is used to update position of seekBar
-            handler = new Handler();
-            runnable = new Runnable() {
-                @Override
-                public void run() {
-                    if (isPlaying == false) return;
-                    songFragment = mediaPlayer.getCurrentPosition();
-                    double fragment_d = (100.0 * songFragment) / mediaPlayer.getDuration();
-                    int fragment = ((int) fragment_d);
-                    seekBar.setProgress(fragment);
-                    handler.postDelayed(this, 1000);
-
-                }
-            };
-            handler.postDelayed(runnable, 200);
-
-            mediaPlayer.seekTo(songFragment);
-            mediaPlayer.start();
-            isPlaying = true;
-            buttonPlay.setImageResource(R.drawable.pause_button);
-
-
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mediaPlayer) {
-
-
-                    if (mode == Mode.ORDER) {
-                        if (nowPlay + 1 < filesUri.size()) nowPlay++;
-                        else nowPlay = 0;
-                        newSong = true;
-                        play(nowPlay);
-                    } else if(mode==Mode.RANDOM){
-                        if (nowPlayRandom + 1 < randomVector.size()) nowPlayRandom++;
-                        else nowPlayRandom = 0;
-                        newSong = true;
-                        play(randomVector.elementAt(nowPlayRandom));
-                    }
-                    else
-                    {
-
-                        play_from_uri(chosen_playlist.get(chosen_playlist_number));
-                    }
-                }
-            });
-
-            info(num);
-
-
-        } else //music is playing
-        {
-            mediaPlayer.pause();
-            isPlaying = false;
-            buttonPlay.setImageResource(R.drawable.play_button);
-            songFragment = mediaPlayer.getCurrentPosition();
-        }
-
-        notification();
-    }
-
-    //plays previous song
-        private void previous_song()
-        {
-            if (isChosen == false) return;
-
-            if (mode == Mode.ORDER) {
-                if (nowPlay - 1 >= 0) nowPlay--;
-                else nowPlay = filesUri.size() - 1;
-
-                mediaPlayer.pause();
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                info(nowPlay);
-                newSong = true;
-                play(nowPlay);
-            } else if(mode == Mode.RANDOM){
-                if (nowPlayRandom - 1 >= 0) nowPlayRandom--;
-                else generate_random_order();
-
-                mediaPlayer.pause();
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                info(randomVector.elementAt(nowPlayRandom));
-                newSong = true;
-                play(randomVector.elementAt(nowPlayRandom));
-            }
-            else
-            {
-                if(chosen_playlist_number-1>0) chosen_playlist_number--;
-                else chosen_playlist_number = chosen_playlist.size()-1;
-                newSong = true;
-                mediaPlayer.pause();
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                play_from_uri(chosen_playlist.get(chosen_playlist_number));
-            }
-
-        }
-
-        //plays next song
-        private void next_song()
-        {
-            if (isChosen == false) return;
-
-            if (mode == Mode.ORDER) {
-                if (nowPlay + 1 < filesUri.size()) nowPlay++;
-                else nowPlay = 0;
-
-                if (isPlaying == true) mediaPlayer.pause();
-
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                info(nowPlay);
-                newSong = true;
-                play(nowPlay);
-            } else if(mode== Mode.RANDOM){
-
-                if (nowPlayRandom + 1 < randomVector.size()) nowPlayRandom++;
-                else generate_random_order();
-
-                if (isPlaying == true) mediaPlayer.pause();
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                info(randomVector.elementAt(nowPlayRandom));
-                newSong = true;
-                play(randomVector.elementAt(nowPlayRandom));
-            }
-            else
-            {
-                if(chosen_playlist_number+1<chosen_playlist.size()) chosen_playlist_number++;
-                else chosen_playlist_number = 0;
-                newSong = true;
-                mediaPlayer.pause();
-                isPlaying = false;
-                buttonPlay.setImageResource(R.drawable.play_button);
-                play_from_uri(chosen_playlist.get(chosen_playlist_number));
-            }
-
-        }
-
-
-
-
-
-
-
-        //plays- pauses song
-        private void play_pause_song() {
-            if (isChosen == false) return;
-
-            if (mode == Mode.ORDER) play(nowPlay);
-            else if (mode == Mode.RANDOM) play(randomVector.elementAt(nowPlayRandom));
-            else {
-
-                if (chosen_playlist.isEmpty() == true) {
-                    Toast toast = Toast.makeText(this, "Wybierz playlistę!", Toast.LENGTH_LONG);
-                    toast.show();
-                } else play_from_uri(chosen_playlist.get(chosen_playlist_number));
-            }
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     }
