@@ -3,7 +3,6 @@ package com.example.music;
 import android.content.Context;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -82,9 +81,7 @@ public class Playlist {
 
         for(int i=0;i<songs.size();++i)
         {
-
             answer.add(songs.elementAt(i));
-
         }
         return answer;
     }

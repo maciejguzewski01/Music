@@ -1,18 +1,10 @@
 package com.example.music;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
-import android.content.res.Resources;
-import android.database.Cursor;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Looper;
-import android.provider.DocumentsContract;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -20,14 +12,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -69,22 +55,16 @@ int get_song_number()
 
 List<Uri> get_playlist()
 {
-
-
     return selected_playlist;
 }
 
     private void add_playlist()
     {
-
-
-         setContentView(R.layout.add_playlist);
-         Button button_add;
+        setContentView(R.layout.add_playlist);
+        Button button_add;
         EditText name_edit;
         button_add= findViewById(R.id.playlist_add);
         name_edit= findViewById(R.id.editTextName);
-
-
 
         button_add.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,17 +72,12 @@ List<Uri> get_playlist()
 
          String answer = name_edit.getText().toString();
 
-//Playlist p= new Playlist(answer);
-
            number++;
            now=number-1;
-
-
 
                 switch(number)
                 {
                     case 1:
-
                         button_one.setVisibility(View.VISIBLE);
                         button_one.setText(answer);
                         p1.set_name(answer);
@@ -130,7 +105,7 @@ List<Uri> get_playlist()
                 }
 
 
-                Toast toast = Toast.makeText(context, "Wybierz plik", Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(context, "Chose a file", Toast.LENGTH_LONG);
                 toast.show();
 
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -146,7 +121,6 @@ List<Uri> get_playlist()
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
 
         if (requestCode == 0 && resultCode == RESULT_OK) {
             if (data != null) {
@@ -170,7 +144,7 @@ List<Uri> get_playlist()
                      break;
              }
 
-                Toast.makeText(context, "Wybrany plik: " + SongUri.toString(), Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Chosen file: " + SongUri.toString(), Toast.LENGTH_LONG).show();
             }
         }
 
@@ -220,8 +194,8 @@ finish();
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.playlists);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         button_test=findViewById(R.id.button_playlist1);
-
 
         if(n==0)
         {
@@ -231,11 +205,7 @@ finish();
             p4=new Playlist(context);
             p5=new Playlist(context);
             n++;
-
-
-
         }
-
 
         button_new= findViewById(R.id.new_play);
         button_one=findViewById(R.id.button_playlist1);
@@ -243,13 +213,6 @@ finish();
         button_three=findViewById(R.id.button_playlist3);
         button_four=findViewById(R.id.button_playlist4);
         button_five=findViewById(R.id.button_playlist5);
-
-
-
-
-
-
-
 
             switch(number)
             {
@@ -293,8 +256,6 @@ finish();
             }
 
 
-
-
         button_new.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -310,7 +271,6 @@ finish();
         });
 
 
-
         button_one.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -319,21 +279,19 @@ finish();
         });
 
 
-
        button_two.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             view_playlist(p2);
         }
-    });
+       });
 
-      button_three.setOnClickListener(new View.OnClickListener() {
-      @Override
+        button_three.setOnClickListener(new View.OnClickListener() {
+        @Override
         public void onClick(View view) {
         view_playlist(p3);
         }
         });
-
 
 
         button_four.setOnClickListener(new View.OnClickListener() {
@@ -352,16 +310,12 @@ finish();
         }
         });
 
-        }
+    }
 
 
     private void returnData() {
-
-
-
         Intent intent = new Intent();
         intent.putParcelableArrayListExtra("t", (ArrayList<Uri>) selected_playlist);
-
 
         setResult(RESULT_OK, intent);
         finish();
