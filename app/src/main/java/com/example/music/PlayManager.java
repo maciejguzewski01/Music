@@ -1,6 +1,9 @@
 package com.example.music;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
@@ -12,6 +15,11 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +34,6 @@ public class PlayManager {
 
     private int nowPlay=0;
     public int getNowPlay() {return nowPlay;}
-
-    private int nowPlayIdx=0;
 
     private int songFragment=0;
     public int getSongFragment(){return songFragment;}
@@ -311,6 +317,79 @@ public class PlayManager {
                 toast.show();
             } else playFromUri(chosen_playlist.get(chosen_playlist_number));
         }
+    }
+
+
+    public void saveData()
+    {
+        SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        editor.putBoolean("isChosen",isChosen);
+        editor.putString("mode",mode.name());
+        editor.putInt("nowPlay",nowPlay);
+        editor.putInt("songFragment",songFragment);
+        editor.putInt("nowPlayRandom",nowPlayRandom);
+
+        Gson gson = new Gson();
+        String jsonRandomVector=gson.toJson(randomVector);
+        editor.putString("randomVector",jsonRandomVector);
+
+        Vector<String> filesUriStrings = new Vector<>();
+        for(Uri uri: filesUri) {filesUriStrings.add(uri.toString());}
+        String jsonFilesUri=gson.toJson(filesUriStrings);
+        editor.putString("filesUri",jsonFilesUri);
+
+        editor.apply();
+    }
+
+    public void restoreSavedData()
+    {
+        SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        isChosen = sharedPreferences.getBoolean("isChosen", false);
+        if(isChosen==false) return;
+        mode = Mode.valueOf(sharedPreferences.getString("mode","ORDER"));
+        nowPlay = sharedPreferences.getInt("nowPlay",0);
+        songFragment = sharedPreferences.getInt("songFragment",0);
+        nowPlayRandom=sharedPreferences.getInt("nowPlayRandom",0);
+
+        Gson gson = new Gson();
+        String jsonRandomVector=sharedPreferences.getString("randomVector","");
+        Type typeRV = new TypeToken<Vector<Integer>>() {}.getType();
+        randomVector = gson.fromJson(jsonRandomVector,typeRV);
+
+        String jsonFilesUri = sharedPreferences.getString("filesUri", "");
+        if(jsonFilesUri.isEmpty()) return;
+        Type typeFU = new TypeToken<Vector<String>>() {}.getType();
+        Vector<String> uriStrings = gson.fromJson(jsonFilesUri, typeFU);
+
+        filesUri.clear();
+        for (String uriString : uriStrings) {
+            filesUri.add(Uri.parse(uriString));
+        }
+
+
+        setInfoAndSeekBar();
+
+
+    }
+
+    private void setInfoAndSeekBar()
+    {
+        if(mode==Mode.ORDER)
+        {
+            setInfo(nowPlay);
+            mediaPlayer = MediaPlayer.create(activity, filesUri.elementAt(nowPlay));
+        }
+        else if(mode==Mode.RANDOM)
+        {
+            setInfo(nowPlayRandom);
+            mediaPlayer = MediaPlayer.create(activity, filesUri.elementAt(nowPlayRandom));
+        }
+        mediaPlayer.seekTo(songFragment);
+        double fragment_d = (100.0 * songFragment) / mediaPlayer.getDuration();
+        int fragment = ((int) fragment_d);
+        seekBar.setProgress(fragment);
     }
 
 

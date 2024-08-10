@@ -32,10 +32,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.SeekBar;
 import androidx.media.session.MediaButtonReceiver;
-
+import android.content.SharedPreferences;
 public class MainActivity extends AppCompatActivity {
 
-    private int songProgress = 0;
+    private int songProgress;
 
     private Button buttonSettings;
     private Button buttonPlaylists;
@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
 
         setupComponents();
 
@@ -81,6 +81,10 @@ public class MainActivity extends AppCompatActivity {
              notificationManager1 = getSystemService(NotificationManager.class);
             notificationManager1.createNotificationChannel(channel);
         }
+
+        SharedPreferences sharedPreferences = getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        boolean wasChosen =sharedPreferences.getBoolean("isChosen",false);
+        //if(wasChosen==true) restoreData();
 
 
         if (playManager.getIsChosen() == false) {
@@ -318,6 +322,44 @@ public class MainActivity extends AppCompatActivity {
         } else if (action==ACTION_NEXT) {
             playManager.playNextSong();
         }
+    }
+
+    private void restoreData()
+    {
+        SharedPreferences sharedPreferences = getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        songProgress=sharedPreferences.getInt("songProgress",0);
+
+        playManager.restoreSavedData();
+    }
+
+    private void saveData()
+    {
+        SharedPreferences sharedPreferences = getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        editor.putInt("songProgress",songProgress);
+        editor.apply();
+        playManager.saveData();
+    }
+
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        restoreData();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveData();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        saveData();
     }
 
 

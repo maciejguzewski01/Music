@@ -1,5 +1,4 @@
 package com.example.music;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;

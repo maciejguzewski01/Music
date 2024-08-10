@@ -194,7 +194,6 @@ finish();
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.playlists);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         button_test=findViewById(R.id.button_playlist1);
 
         if(n==0)
