@@ -9,7 +9,9 @@ import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
+import android.util.TypedValue;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -26,7 +28,14 @@ import java.util.List;
 import java.util.Vector;
 
 public class PlayManager {
-    public PlayManager(Activity act) {activity=act;}
+    private PlayManager() {}
+
+    private static PlayManager instance;
+    public static PlayManager getInstance() {
+        if (instance == null) {instance = new PlayManager();}
+        return instance;
+    }
+    public void setActivity(Activity newActivity){activity=newActivity;}
 
     private Mode mode;
     public void setMode(Mode newMode) {mode=newMode;}
@@ -73,6 +82,7 @@ public class PlayManager {
     private TextView textArtist;
     private TextView textAlbum;
     private ImageView imageCover;
+
 
     public void intro(SeekBar seekBarRef,ImageButton buttonPlayRef,TextView textTitleRef,TextView textArtistRef,TextView textAlbumRef,ImageView imageCoverRef)
     {
@@ -168,6 +178,7 @@ public class PlayManager {
                     if(chosen_playlist_number+1<chosen_playlist.size()) chosen_playlist_number++;
                     else chosen_playlist_number = 0;
                     newSong = true;
+                    isPlaying=false;
                     playFromUri(chosen_playlist.get(chosen_playlist_number));
                 }
             });
@@ -197,7 +208,6 @@ public class PlayManager {
 
 
     private void play(int num) {
-
         if (isPlaying == false)
         {
             handlePlayCommandIfIsPlayingIsFalse(filesUri.get(num));
@@ -209,11 +219,13 @@ public class PlayManager {
                         if (nowPlay + 1 < filesUri.size()) nowPlay++;
                         else nowPlay = 0;
                         newSong = true;
+                        isPlaying=false;
                         play(nowPlay);
                     } else if(mode==Mode.RANDOM){
                         if (nowPlayRandom + 1 < randomVector.size()) nowPlayRandom++;
                         else nowPlayRandom = 0;
                         newSong = true;
+                        isPlaying=false;
                         play(randomVector.elementAt(nowPlayRandom));
                     }
                     else
@@ -243,7 +255,8 @@ public class PlayManager {
     public void playPreviousSong()
     {
         if (isChosen == false) return;
-
+        boolean wasPlaying=isPlaying;
+        seekBar.setProgress(0);
         if (mode == Mode.ORDER) {
             if (nowPlay - 1 >= 0) nowPlay--;
             else nowPlay = filesUri.size() - 1;
@@ -251,7 +264,7 @@ public class PlayManager {
             changeSongProcedures();
             setInfo(nowPlay);
 
-            play(nowPlay);
+            if(wasPlaying==true) play(nowPlay);
         } else if(mode == Mode.RANDOM){
             if (nowPlayRandom - 1 >= 0) nowPlayRandom--;
             else generateRandomOrder();
@@ -259,7 +272,7 @@ public class PlayManager {
             changeSongProcedures();
             setInfo(randomVector.elementAt(nowPlayRandom));
 
-            play(randomVector.elementAt(nowPlayRandom));
+            if(wasPlaying==true) play(randomVector.elementAt(nowPlayRandom));
         }
         else
         {
@@ -267,7 +280,7 @@ public class PlayManager {
             else chosen_playlist_number = chosen_playlist.size()-1;
 
             changeSongProcedures();
-            playFromUri(chosen_playlist.get(chosen_playlist_number));
+            if(wasPlaying==true) playFromUri(chosen_playlist.get(chosen_playlist_number));
         }
 
     }
@@ -275,7 +288,8 @@ public class PlayManager {
     public void playNextSong()
     {
         if (isChosen == false) return;
-
+        boolean wasPlaying=isPlaying;
+        seekBar.setProgress(0);
         if (mode == Mode.ORDER) {
             if (nowPlay + 1 < filesUri.size()) nowPlay++;
             else nowPlay = 0;
@@ -283,7 +297,7 @@ public class PlayManager {
             changeSongProcedures();
             setInfo(nowPlay);
 
-            play(nowPlay);
+            if(wasPlaying==true) play(nowPlay);
         } else if(mode== Mode.RANDOM){
 
             if (nowPlayRandom + 1 < randomVector.size()) nowPlayRandom++;
@@ -292,7 +306,7 @@ public class PlayManager {
             changeSongProcedures();
             setInfo(randomVector.elementAt(nowPlayRandom));
 
-            play(randomVector.elementAt(nowPlayRandom));
+            if(wasPlaying==true) play(randomVector.elementAt(nowPlayRandom));
         }
         else
         {
@@ -300,7 +314,7 @@ public class PlayManager {
             else chosen_playlist_number = 0;
 
             changeSongProcedures();
-            playFromUri(chosen_playlist.get(chosen_playlist_number));
+            if(wasPlaying==true) playFromUri(chosen_playlist.get(chosen_playlist_number));
         }
 
     }

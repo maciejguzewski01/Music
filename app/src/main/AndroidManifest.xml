@@ -45,6 +45,8 @@
                 android:value="com.example.music.MainActivity" />
         </activity>
 
+        <receiver android:name=".NotificationHandler" />
+
 
 
 

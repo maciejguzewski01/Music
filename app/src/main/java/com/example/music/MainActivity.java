@@ -13,6 +13,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -62,13 +63,18 @@ public class MainActivity extends AppCompatActivity {
 
     private Permissions permissions= new Permissions();
     private Introduction introduction = new Introduction(this);
-    private PlayManager playManager = new PlayManager(this);
+    //private PlayManager playManager = new PlayManager(this);
+    private PlayManager playManager;
+    private NotificationHandler notificationHandler = new NotificationHandler();
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        playManager=PlayManager.getInstance();
+        playManager.setActivity(this);
 
 
         setupComponents();
@@ -81,10 +87,6 @@ public class MainActivity extends AppCompatActivity {
              notificationManager1 = getSystemService(NotificationManager.class);
             notificationManager1.createNotificationChannel(channel);
         }
-
-        SharedPreferences sharedPreferences = getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
-        boolean wasChosen =sharedPreferences.getBoolean("isChosen",false);
-        //if(wasChosen==true) restoreData();
 
 
         if (playManager.getIsChosen() == false) {
@@ -245,15 +247,14 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
     private void notification() {
         if(playManager.getIsChosen()==false) return;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+        //notificationHandler.setPlayManager(playManager);
 
 
         Intent intent = new Intent();
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
 
@@ -270,17 +271,17 @@ public class MainActivity extends AppCompatActivity {
             im.setImageBitmap(bitmap);
         }
 
-        Intent intent1 = new Intent(this, MainActivity.class);
+        Intent intent1 = new Intent(this, NotificationHandler.class);
         intent1.setAction(ACTION_PREVIOUS);
-        PendingIntent prevPendingIntent=  PendingIntent.getActivity(this, 0, intent1, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent prevPendingIntent=  PendingIntent.getBroadcast(this, 0, intent1, PendingIntent.FLAG_IMMUTABLE);
 
-        Intent intent2 = new Intent(this, MainActivity.class);
+        Intent intent2 = new Intent(this, NotificationHandler.class);
         intent2.setAction(ACTION_PLAY_PAUSE);
-        PendingIntent pausePendingIntent=  PendingIntent.getActivity(this, 0, intent2, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pausePendingIntent=  PendingIntent.getBroadcast(this, 0, intent2, PendingIntent.FLAG_IMMUTABLE);
 
-        Intent intent3 = new Intent(this, MainActivity.class);
+        Intent intent3 = new Intent(this, NotificationHandler.class);
         intent3.setAction(ACTION_NEXT);
-        PendingIntent nextPendingIntent=  PendingIntent.getActivity(this, 0, intent3, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent nextPendingIntent=  PendingIntent.getBroadcast(this, 0, intent3, PendingIntent.FLAG_IMMUTABLE);
 
         Bitmap dmp= BitmapFactory.decodeResource(this.getResources(),R.drawable.default_music_cover);
 
@@ -307,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
         notificationManager.notify(1,notification);
 
     }
-
+/*
     //detects pushing one of notification buttons
     @Override
     protected void onNewIntent(Intent intent) {
@@ -322,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (action==ACTION_NEXT) {
             playManager.playNextSong();
         }
-    }
+    }*/
 
     private void restoreData()
     {
@@ -347,7 +348,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        restoreData();
+         if(playManager==null) restoreData();
+         else if(playManager.getIsPlaying()==false) restoreData();
+
     }
 
     @Override
@@ -364,6 +367,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 }
+
 
 
 
