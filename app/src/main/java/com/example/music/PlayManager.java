@@ -3,7 +3,9 @@ package com.example.music;
 import static android.content.Context.MODE_PRIVATE;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
@@ -28,45 +30,81 @@ import java.util.List;
 import java.util.Vector;
 
 public class PlayManager {
-    private PlayManager() {}
+    private PlayManager() {
+    }
 
     private static PlayManager instance;
+
     public static PlayManager getInstance() {
-        if (instance == null) {instance = new PlayManager();}
+        if (instance == null) {
+            instance = new PlayManager();
+        }
         return instance;
     }
-    public void setActivity(Activity newActivity){activity=newActivity;
-    notifier = new Notifier(activity);
+
+    public void setActivity(Activity newActivity) {
+        activity = newActivity;
+        notifier = new Notifier(activity);
     }
 
     private Notifier notifier;
 
     private Mode mode;
-    public void setMode(Mode newMode) {mode=newMode;}
-    public Mode getMode() {return mode;}
 
-    private int nowPlay=0;
-    public int getNowPlay() {return nowPlay;}
+    public void setMode(Mode newMode) {
+        mode = newMode;
+    }
 
-    private int songFragment=0;
-    public int getSongFragment(){return songFragment;}
-    public void setSongFragment(int newSongFragment) {songFragment=newSongFragment;}
+    public Mode getMode() {
+        return mode;
+    }
+
+    private int nowPlay = 0;
+
+    public int getNowPlay() {
+        return nowPlay;
+    }
+
+    private int songFragment = 0;
+
+    public int getSongFragment() {
+        return songFragment;
+    }
+
+    public void setSongFragment(int newSongFragment) {
+        songFragment = newSongFragment;
+    }
 
     private MediaPlayer mediaPlayer;
-    public MediaPlayer getMediaPlayer(){return mediaPlayer;}
+
+    public MediaPlayer getMediaPlayer() {
+        return mediaPlayer;
+    }
 
     private boolean isPlaying = false;
-    public boolean getIsPlaying(){return isPlaying;}
-    public void setIsPlaying(boolean newIsPlaying) {isPlaying=newIsPlaying;}
+
+    public boolean getIsPlaying() {
+        return isPlaying;
+    }
+
+    public void setIsPlaying(boolean newIsPlaying) {
+        isPlaying = newIsPlaying;
+    }
 
     private boolean isChosen = false;
-    public boolean getIsChosen(){return isChosen;}
-    public void setIsChosen(boolean newIsChosen) {isChosen=newIsChosen;}
+
+    public boolean getIsChosen() {
+        return isChosen;
+    }
+
+    public void setIsChosen(boolean newIsChosen) {
+        isChosen = newIsChosen;
+    }
 
     boolean newSong = false;
 
-    private List<Uri> chosen_playlist= new ArrayList<>();
-    private int chosen_playlist_number=0;
+    private List<Uri> chosen_playlist = new ArrayList<>();
+    private int chosen_playlist_number = 0;
 
     private Vector<Integer> randomVector;
     private int nowPlayRandom = 0;
@@ -75,8 +113,14 @@ public class PlayManager {
     private Runnable runnable;
 
     private Vector<Uri> filesUri = new Vector<Uri>();
-    public Vector<Uri> getFilesUri(){return filesUri;}
-    public void setFilesUri(Vector<Uri> newFilesUri){filesUri=newFilesUri;}
+
+    public Vector<Uri> getFilesUri() {
+        return filesUri;
+    }
+
+    public void setFilesUri(Vector<Uri> newFilesUri) {
+        filesUri = newFilesUri;
+    }
 
     private Activity activity;
 
@@ -88,14 +132,13 @@ public class PlayManager {
     private ImageView imageCover;
 
 
-    public void intro(SeekBar seekBarRef,ImageButton buttonPlayRef,TextView textTitleRef,TextView textArtistRef,TextView textAlbumRef,ImageView imageCoverRef)
-    {
-        seekBar=seekBarRef;
-        buttonPlay=buttonPlayRef;
-        textTitle=textTitleRef;
-        textArtist=textArtistRef;
-        textAlbum=textAlbumRef;
-        imageCover=imageCoverRef;
+    public void intro(SeekBar seekBarRef, ImageButton buttonPlayRef, TextView textTitleRef, TextView textArtistRef, TextView textAlbumRef, ImageView imageCoverRef) {
+        seekBar = seekBarRef;
+        buttonPlay = buttonPlayRef;
+        textTitle = textTitleRef;
+        textArtist = textArtistRef;
+        textAlbum = textAlbumRef;
+        imageCover = imageCoverRef;
     }
 
 
@@ -109,7 +152,9 @@ public class PlayManager {
 
         byte[] cover = metadataRetriever.getEmbeddedPicture();
         Bitmap bitmap = null;
-        if (cover != null) { bitmap = BitmapFactory.decodeByteArray(cover, 0, cover.length); }
+        if (cover != null) {
+            bitmap = BitmapFactory.decodeByteArray(cover, 0, cover.length);
+        }
 
         textTitle.setText(songTitle);
         textArtist.setText(artistName);
@@ -118,17 +163,24 @@ public class PlayManager {
     }
 
 
+    public void generateRandomOrder() {
+        randomVector = new Vector<>();
 
-    public void generateRandomOrder()
-    {
-        randomVector= new Vector<>();
-
-        int size=filesUri.size();
-        for(int i=0;i<size;++i)
-        {
+        int size = filesUri.size();
+        for (int i = 0; i < size; ++i) {
             randomVector.add(i);
         }
         Collections.shuffle(randomVector);
+    }
+
+    private boolean confirmFileExist(Uri uri)
+    {
+        ContentResolver contentResolver = activity.getContentResolver();
+        Cursor cursor = null;
+
+        cursor = contentResolver.query(uri, null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) return true;
+        else return false;
     }
 
     private void handlePlayCommandIfIsPlayingIsTrue()
@@ -142,9 +194,18 @@ public class PlayManager {
     private void handlePlayCommandIfIsPlayingIsFalse(Uri uri)
     {
         if ((mediaPlayer == null) || (newSong == true)) {
-            mediaPlayer = MediaPlayer.create(activity, uri);
-            newSong = false;
-            songFragment = 0;
+            if (confirmFileExist(uri) == true)
+            {
+                mediaPlayer = MediaPlayer.create(activity, uri);
+                newSong = false;
+                songFragment = 0;
+            }
+            else
+            {
+                Toast toast = Toast.makeText(activity, "Changes in music folder detected. Please chose folder in settings once again.", Toast.LENGTH_LONG);
+                toast.show();
+            }
+
         }
 
         //handler is used to update position of seekBar
@@ -328,8 +389,10 @@ public class PlayManager {
 
     public void playOrPauseSong() {
         if (isChosen == false) return;
-
-        if (mode == Mode.ORDER) play(nowPlay);
+        if (mode == Mode.ORDER)
+        {
+            play(nowPlay);
+        }
         else if (mode == Mode.RANDOM) play(randomVector.elementAt(nowPlayRandom));
         else {
             if (chosen_playlist.isEmpty() == true) {

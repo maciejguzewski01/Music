@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         playManager=PlayManager.getInstance();
         playManager.setActivity(this);
 
+
         setupComponents();
 
         permissions.checkPermissionsAndAskIfMissing(this);
@@ -80,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
             Toast toast = Toast.makeText(context, text, duration);
             toast.show();
         }
-
         handleButtons();
     }
 
@@ -104,8 +104,6 @@ public class MainActivity extends AppCompatActivity {
         playManager.intro(seekBar,buttonPlay,textTitle,textArtist,textAlbum,imageCover);
     }
 
-
-
     private void handleButtons()
     {
 
@@ -116,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onActivityResult(ActivityResult result) {
                         if (result.getResultCode() == Activity.RESULT_OK) {
                             Intent data = result.getData();
+                            if(data==null) return;
 
                             introduction.handleActivityResult(data);
                             playManager.setIsChosen(introduction.getIsChosen());
@@ -138,6 +137,11 @@ public class MainActivity extends AppCompatActivity {
         buttonPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if((playManager.getFilesUri()==null)&&(introduction.getFilesUri()!=null))
+                {
+                    playManager.setIsChosen(introduction.getIsChosen());
+                    playManager.setFilesUri(introduction.getFilesUri());
+                }
                 playManager.playOrPauseSong();
             }
         });

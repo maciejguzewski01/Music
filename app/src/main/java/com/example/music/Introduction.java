@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -11,6 +12,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 public class Introduction {
@@ -46,8 +50,6 @@ public class Introduction {
 
     public Vector<Uri> getFilesUri() { return filesUri; }
 
-
-
     public void handleActivityResult(Intent data) {
         if (data==null) return;
 
@@ -79,24 +81,32 @@ public class Introduction {
     private void sort() {
         MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
 
+        Map<Uri, List<String>> buffer = new HashMap();
+
+        for(Uri uri: filesUri)
+        {
+            metadataRetriever.setDataSource(appCompatActivity, uri);
+            String title = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+            String artist = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+            Vector<String> data = new Vector<>();
+            data.add(title);
+            data.add(artist);
+            buffer.put(uri,data);
+        }
+
         Comparator<Uri> comparator = new Comparator<Uri>() {
             @Override
             public int compare(Uri uri1, Uri uri2) {
-                metadataRetriever.setDataSource(appCompatActivity, uri1);
-                String data1 = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                metadataRetriever.setDataSource(appCompatActivity, uri2);
-                String data2 = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                List<String> data1 = buffer.get(uri1);
+                List<String> data2 = buffer.get(uri2);
 
-                if (data1 == data2) {
-                    metadataRetriever.setDataSource(appCompatActivity, uri1);
-                    data1 = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                    metadataRetriever.setDataSource(appCompatActivity, uri2);
-                    data2 = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                }
-                return data1.compareToIgnoreCase(data2);
+                if((data1.get(0).equals(data2.get(0)))==false) return data1.get(0).compareToIgnoreCase(data2.get(0));
+                else return data1.get(1).compareToIgnoreCase(data2.get(1));
             }
         };
 
         Collections.sort(filesUri, comparator);
     }
+
+
 }
