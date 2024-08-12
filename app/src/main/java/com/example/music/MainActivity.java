@@ -4,27 +4,15 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import android.Manifest;
 import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -32,10 +20,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.SeekBar;
-import androidx.media.session.MediaButtonReceiver;
 import android.content.SharedPreferences;
-public class MainActivity extends AppCompatActivity {
 
+public class MainActivity extends AppCompatActivity {
     private int songProgress;
 
     private Button buttonSettings;
@@ -63,9 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Permissions permissions= new Permissions();
     private Introduction introduction = new Introduction(this);
-    //private PlayManager playManager = new PlayManager(this);
     private PlayManager playManager;
-    private NotificationHandler notificationHandler = new NotificationHandler();
 
 
     @Override
@@ -75,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
 
         playManager=PlayManager.getInstance();
         playManager.setActivity(this);
-
 
         setupComponents();
 
@@ -155,7 +139,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 playManager.playOrPauseSong();
-                notification();
             }
         });
 
@@ -247,83 +230,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void notification() {
-        if(playManager.getIsChosen()==false) return;
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
-        //notificationHandler.setPlayManager(playManager);
-
-
-        Intent intent = new Intent();
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-
-        MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
-
-        metadataRetriever.setDataSource(this, playManager.getFilesUri().get(playManager.getNowPlay()));
-        String tittle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-        String artist = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-
-
-        byte[] cover = metadataRetriever.getEmbeddedPicture();
-        Bitmap bitmap = null;
-        if (cover != null) {
-            bitmap = BitmapFactory.decodeByteArray(cover, 0, cover.length);
-            ImageView im = new ImageView(this);
-            im.setImageBitmap(bitmap);
-        }
-
-        Intent intent1 = new Intent(this, NotificationHandler.class);
-        intent1.setAction(ACTION_PREVIOUS);
-        PendingIntent prevPendingIntent=  PendingIntent.getBroadcast(this, 0, intent1, PendingIntent.FLAG_IMMUTABLE);
-
-        Intent intent2 = new Intent(this, NotificationHandler.class);
-        intent2.setAction(ACTION_PLAY_PAUSE);
-        PendingIntent pausePendingIntent=  PendingIntent.getBroadcast(this, 0, intent2, PendingIntent.FLAG_IMMUTABLE);
-
-        Intent intent3 = new Intent(this, NotificationHandler.class);
-        intent3.setAction(ACTION_NEXT);
-        PendingIntent nextPendingIntent=  PendingIntent.getBroadcast(this, 0, intent3, PendingIntent.FLAG_IMMUTABLE);
-
-        Bitmap dmp= BitmapFactory.decodeResource(this.getResources(),R.drawable.default_music_cover);
-
-        int play_pause_icon;
-        if(playManager.getIsPlaying()==true) play_pause_icon=R.mipmap.pause;
-        else play_pause_icon=R.mipmap.play;
-
-        Notification notification = new NotificationCompat.Builder(this, "not_chan_1")
-                .setLargeIcon(bitmap)
-                .setSmallIcon(R.mipmap.default_music_cover)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2).setShowCancelButton(true)
-                        .setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this,   PlaybackStateCompat.ACTION_STOP)))
-                .addAction(R.mipmap.previous, "Previous", prevPendingIntent)
-                .addAction(play_pause_icon, "Pause", pausePendingIntent)
-                .addAction(R.mipmap.next, "Next", nextPendingIntent)
-                .setContentTitle(tittle)
-                .setContentText(artist)
-                .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP))
-                .build();
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-        notificationManager.notify(1,notification);
-
-    }
-/*
-    //detects pushing one of notification buttons
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-
-        String action = intent.getAction();
-
-        if(action==ACTION_PREVIOUS) {
-            playManager.playPreviousSong();
-        } else if (action==ACTION_PLAY_PAUSE) {
-            playManager.playOrPauseSong();
-        } else if (action==ACTION_NEXT) {
-            playManager.playNextSong();
-        }
-    }*/
 
     private void restoreData()
     {
@@ -350,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
          if(playManager==null) restoreData();
          else if(playManager.getIsPlaying()==false) restoreData();
-
     }
 
     @Override
@@ -364,8 +269,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         saveData();
     }
-
-
 }
 
 

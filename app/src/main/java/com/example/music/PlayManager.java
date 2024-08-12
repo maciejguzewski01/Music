@@ -35,7 +35,11 @@ public class PlayManager {
         if (instance == null) {instance = new PlayManager();}
         return instance;
     }
-    public void setActivity(Activity newActivity){activity=newActivity;}
+    public void setActivity(Activity newActivity){activity=newActivity;
+    notifier = new Notifier(activity);
+    }
+
+    private Notifier notifier;
 
     private Mode mode;
     public void setMode(Mode newMode) {mode=newMode;}
@@ -204,6 +208,7 @@ public class PlayManager {
         {
             handlePlayCommandIfIsPlayingIsTrue();
         }
+        notifier.notification(this);
     }
 
 
@@ -240,6 +245,7 @@ public class PlayManager {
         {
             handlePlayCommandIfIsPlayingIsTrue();
         }
+        notifier.notification(this);
     }
 
 
@@ -249,6 +255,7 @@ public class PlayManager {
         isPlaying = false;
         buttonPlay.setImageResource(R.drawable.play_button);
         newSong = true;
+        notifier.notification(this);
     }
 
 
@@ -271,7 +278,6 @@ public class PlayManager {
 
             changeSongProcedures();
             setInfo(randomVector.elementAt(nowPlayRandom));
-
             if(wasPlaying==true) play(randomVector.elementAt(nowPlayRandom));
         }
         else
