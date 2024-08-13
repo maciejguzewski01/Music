@@ -13,7 +13,7 @@
 
         <Button
             android:id="@+id/new_play"
-            android:text="Dodaj"
+            android:text="Add playlist"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -23,87 +23,19 @@
 
     <TableRow
         android:gravity="center_horizontal"
-        android:id="@+id/playlist1"
+        android:id="@+id/list_of_Playlists"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/button_playlist1"
-            android:text="1"
-            android:layout_width="0dp"
+        <ListView
+            android:id="@+id/playlistsListView"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="5dp"
 
             />
     </TableRow>
-
-
-    <TableRow
-        android:gravity="center_horizontal"
-        android:id="@+id/playlist2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <Button
-            android:id="@+id/button_playlist2"
-            android:text="2"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-
-            />
-    </TableRow>
-
-    <TableRow
-        android:gravity="center_horizontal"
-        android:id="@+id/playlist3"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <Button
-            android:id="@+id/button_playlist3"
-            android:text="3"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-
-            />
-    </TableRow>
-
-
-    <TableRow
-        android:gravity="center_horizontal"
-        android:id="@+id/playlist4"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <Button
-            android:id="@+id/button_playlist4"
-            android:text="4"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-
-            />
-    </TableRow>
-
-
-    <TableRow
-        android:gravity="center_horizontal"
-        android:id="@+id/playlist5"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <Button
-            android:id="@+id/button_playlist5"
-            android:text="5"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-
-            />
-    </TableRow>
-
 
 
 
