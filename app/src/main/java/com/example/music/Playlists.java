@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
@@ -24,6 +25,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +39,7 @@ import java.util.Vector;
 public class Playlists extends AppCompatActivity {
 
     private Button newPlaylistButton;
-    private Vector<String> playlistsNames = new Vector<>();
+    private Vector<String> playlistsNames;
 
     private ListView listView;
     private ArrayAdapter<String> adapter;
@@ -45,12 +51,12 @@ public class Playlists extends AppCompatActivity {
     private ListView listViewSinglePlaylist;
     private Button newSongButton;
 
-    private Map<String,Vector<Uri>> playlistsUri= new HashMap<>();
-    private Map<String,Vector<String>> playlistsTitles= new HashMap<>();
+    private Map<String,Vector<Uri>> playlistsUri;
+    private Map<String,Vector<String>> playlistsTitles;
 
     private ArrayAdapter<String> adapterPlaylist;
 
-    private Vector<Uri> selectedPlaylist=new Vector<>();
+    private Vector<Uri> selectedPlaylist;
     private int selectedSong;
     public Vector<Uri> getSelectedPlaylist(){return selectedPlaylist;}
     public int getSelectedSong(){return selectedSong;}
@@ -60,14 +66,18 @@ public class Playlists extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.playlists);
 
+        playlistsUri= new HashMap<>();
+        playlistsTitles= new HashMap<>();
+        playlistsNames = new Vector<>();
+        selectedPlaylist=new Vector<>();
+
+
         newPlaylistButton = findViewById(R.id.new_play);
         activity=this;
-
         restoreData();
-
-        listViewSinglePlaylist= findViewById(R.id.playlistsListView);
+        listView= findViewById(R.id.playlistsListView);
         adapter = new ArrayAdapter<>(this, R.layout.playlistrow, playlistsNames);
-        listViewSinglePlaylist.setAdapter(adapter);
+        listView.setAdapter(adapter);
 
 
         newPlaylistButton.setOnClickListener(new View.OnClickListener() {
@@ -78,7 +88,7 @@ public class Playlists extends AppCompatActivity {
         });
 
 
-        listViewSinglePlaylist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String selectedItem =  parent.getItemAtPosition(position).toString();
@@ -89,54 +99,90 @@ public class Playlists extends AppCompatActivity {
     }
 
 
-    //later in this function set restoring data from sharedPreferences or in onResume
-    private void restoreData() {
-        playlistsNames.add("English");
-        playlistsNames.add("Polish");
-        playlistsNames.add("Spanish");
-        playlistsNames.add("Korean");
 
-        //odzyskac pliki w playlsitach
+    private void addPlaylist()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add New Playlist");
 
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.add_playlist, null);
+        builder.setView(dialogView);
+
+        EditText name_edit = dialogView.findViewById(R.id.editTextName);
+
+        builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = name_edit.getText().toString();
+                if (name.isEmpty()==false)
+                {
+                    Vector<Uri> vec1 = new Vector<>();
+                    playlistsUri.put(name, vec1);
+
+                    Vector<String> vec2 = new Vector<>();
+                    playlistsTitles.put(name, vec2);
+
+                    playlistsNames.add(name);
+
+                    adapter.notifyDataSetChanged();
+                }
+                else
+                {
+                    Toast toast = Toast.makeText(activity, "You need to chose a name!", Toast.LENGTH_LONG);
+                    toast.show();
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
-
-
 
 //---------------------------------------------------------------------------
 
-    private Vector<Uri> currentPlaylistUri=new Vector<>();
-    private Vector<String> currentPlaylistString=new Vector<>();
+    private Vector<Uri> currentPlaylistUri;
+    private Vector<String> currentPlaylistString;
     boolean songAdded;
+    String currentName;
 
     private void displayPlaylist(String name) {
         setContentView(R.layout.play);
         newSongButton=findViewById(R.id.new_play);
         songAdded=false;
+        currentName=name;
 
-        currentPlaylistUri=playlistsUri.get(name);
-        currentPlaylistString=playlistsTitles.get(name);
+        currentPlaylistUri=new Vector<>();
+        currentPlaylistString=new Vector<>();
 
-        listView=findViewById(R.id.songsListView);
+
+       currentPlaylistUri=playlistsUri.get(name);
+       currentPlaylistString=playlistsTitles.get(name);
+
+
+
+
+        listViewSinglePlaylist=findViewById(R.id.songsListView);
         adapterPlaylist = new ArrayAdapter<>(this, R.layout.playlistrow, currentPlaylistString);
+        listViewSinglePlaylist.setAdapter(adapterPlaylist);
 
         newSongButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
                 addSong();
-                if(songAdded==true)
-                {
-                    songAdded=false;
-
-                    playlistsUri.get(name).add(currentPlaylistUri.lastElement());
-                    playlistsTitles.get(name).add(currentPlaylistString.lastElement());
-                }
             }
         });
 
 
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        listViewSinglePlaylist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 selectedSong=position;
@@ -162,11 +208,12 @@ public class Playlists extends AppCompatActivity {
                         metadataRetriever.setDataSource(activity, uriTree);
                         String songTitle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
 
-                        currentPlaylistUri.add(uriTree);
-                        currentPlaylistString.add(songTitle);
                         songAdded=true;
 
+                        playlistsUri.get(currentName).add(uriTree);
+                        playlistsTitles.get(currentName).add(songTitle);
 
+                        adapterPlaylist.notifyDataSetChanged();
                     }
                 }
             });
@@ -181,47 +228,127 @@ public class Playlists extends AppCompatActivity {
         chooseFileLauncher.launch(intent);
     }
 
-    private void addPlaylist()
+
+    private void restoreData()
     {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Add New Playlist");
+        playlistsUri.clear();
+        playlistsTitles.clear();
 
-        LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.add_playlist, null);
-        builder.setView(dialogView);
+        SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        selectedSong = sharedPreferences.getInt("SelectedSong",0);
 
-        EditText name_edit = dialogView.findViewById(R.id.editTextName);
+        Gson gson = new Gson();
 
-        builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String name = name_edit.getText().toString();
-                if (name.isEmpty()==false)
-                {
-                    Vector<Uri> vec1 = new Vector<>();
-                    playlistsUri.put(name, vec1);
-                    Vector<String> vec2 = new Vector<>();
-                    playlistsTitles.put(name, vec2);
+        String jsonPlaylistsNames=sharedPreferences.getString("playlistsNames","");
+        Type typePN = new TypeToken<Vector<String>>() {}.getType();
+        playlistsNames = gson.fromJson(jsonPlaylistsNames,typePN);
+        if(playlistsNames==null) playlistsNames=new Vector<>();
 
-                    adapter.notifyDataSetChanged();
-                }
-                else
-                {
-                    Toast toast = Toast.makeText(activity, "You need to chose a name!", Toast.LENGTH_LONG);
-                    toast.show();
-                }
+
+        String jsonPlaylistsUri=sharedPreferences.getString("playlistsUri","");
+        if(jsonPlaylistsUri.isEmpty()==false)
+        {
+            Type typePU = new TypeToken<Map<String,Vector<String>>>() {}.getType();
+            Map<String,Vector<String>> playlistsUriStrings=gson.fromJson(jsonPlaylistsUri, typePU);
+
+            for (Map.Entry<String, Vector<String>> entry : playlistsUriStrings.entrySet()) {
+                Vector<Uri> uri = new Vector<>();
+                for (String uriString : entry.getValue()) {uri.add(Uri.parse(uriString));                }
+                playlistsUri.put(entry.getKey(), uri);
             }
-        });
+        }
+        if(playlistsUri==null) playlistsUri=new HashMap<>();
 
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
+
+        String jsonPlaylistsTitles=sharedPreferences.getString("playlistsTitles","");
+        if(jsonPlaylistsTitles.isEmpty()==false)
+        {
+            Type typePT = new TypeToken<Map<String,Vector<String>>>() {}.getType();
+            playlistsTitles = gson.fromJson(jsonPlaylistsTitles,typePT);
+        }
+        if(playlistsTitles==null) playlistsTitles=new HashMap<>();
+
+
+
+        String jsonSelectedPlaylist=sharedPreferences.getString("selectedPlaylist","");
+        if(jsonSelectedPlaylist.isEmpty()==false)
+        {
+            Type typeSP = new TypeToken<Vector<String>>() {}.getType();
+            Vector<String> selectedPlaylistUriStrings = gson.fromJson(jsonSelectedPlaylist, typeSP);
+
+            selectedPlaylist.clear();
+            for (String selectedPlaylistUriString : selectedPlaylistUriStrings) {
+                selectedPlaylist.add(Uri.parse(selectedPlaylistUriString));
             }
-        });
+        }
+        if(selectedPlaylist==null) selectedPlaylist=new Vector<>();
 
-        AlertDialog dialog = builder.create();
-        dialog.show();
+       
+
+
+    }
+
+
+    private void saveData()
+    {
+        SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        Gson gson = new Gson();
+        String jsonPlaylistsNames=gson.toJson(playlistsNames);
+        editor.putString("playlistsNames",jsonPlaylistsNames);
+
+
+
+        Map<String, Vector<String>> playlistsUriString = new HashMap<>();
+        for(Map.Entry<String, Vector<Uri>> entry: playlistsUri.entrySet())
+        {
+            Vector<String> uriString=new Vector<>();
+            for(Uri uri: entry.getValue()){uriString.add(uri.toString());}
+            playlistsUriString.put(entry.getKey(), uriString);
+        }
+        String jsonPlaylistsUri=gson.toJson(playlistsUriString);
+        editor.putString("playlistsUri",jsonPlaylistsUri);
+
+        String jsonPlaylistsTitles=gson.toJson(playlistsTitles);
+        editor.putString("playlistsTitles",jsonPlaylistsTitles);
+
+        Vector<String> selectedPlaylistString = new Vector<>();
+        for(Uri uri: selectedPlaylist) {selectedPlaylistString.add(uri.toString());}
+        String jsonSelectedPlaylist=gson.toJson(selectedPlaylistString);
+        editor.putString("selectedPlaylist",jsonSelectedPlaylist);
+
+        editor.putInt("SelectedSong",selectedSong);
+
+        editor.apply();
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveData();
+        //saveEmptyData();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+      saveData();
+    }
+
+    //DELETE LATER
+     private void saveEmptyData()
+    {
+        SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        editor.putString("playlistsNames","");
+        editor.putString("playlistsUri","");
+        editor.putString("playlistsTitles","");
+        editor.putString("selectedPlaylist","");
+        editor.putInt("SelectedSong",0);
+        editor.apply();
     }
 
 

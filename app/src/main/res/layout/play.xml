@@ -7,11 +7,30 @@
         android:gravity="center_horizontal"
         android:id="@+id/adding_song"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/black2">
+
+        <Button
+            android:id="@+id/back_play"
+            android:text="Back"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+
+            />
 
         <Button
             android:id="@+id/new_play"
             android:text="Add song"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+
+            />
+
+        <Button
+            android:id="@+id/delete_song"
+            android:text="Delete song"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"

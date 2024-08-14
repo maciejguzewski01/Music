@@ -42,22 +42,6 @@
     </TableRow>
 
 
-    <TableRow
-        android:gravity="center_horizontal"
-        android:id="@+id/new_playlist"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    <Button
-        android:id="@+id/playlist_add"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Utwórz"
-        tools:layout_editor_absoluteX="134dp"
-        tools:layout_editor_absoluteY="89dp" />
-
-
-    </TableRow>
 
 
 </TableLayout>
