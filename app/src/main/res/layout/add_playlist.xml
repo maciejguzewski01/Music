@@ -2,9 +2,26 @@
 <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/black2">
 
+    <TableRow
+        android:gravity="center_horizontal"
+        android:id="@+id/text_row"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
+        <TextView
+            android:id="@+id/text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Insert name:"
+            android:textSize="35sp"
+            android:layout_gravity="center"
+            android:textColor="@color/white"
+            />
+
+    </TableRow>
     <TableRow
         android:gravity="center_horizontal"
         android:id="@+id/playlist_name"
@@ -17,9 +34,10 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
-        android:text="Wprowadź nazwę:"
+        android:text=""
         tools:layout_editor_absoluteX="92dp"
-        tools:layout_editor_absoluteY="34dp" />
+        tools:layout_editor_absoluteY="34dp"
+        android:textColor="@color/white"/>
 
     </TableRow>
 
