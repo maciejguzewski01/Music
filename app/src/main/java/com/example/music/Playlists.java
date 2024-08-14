@@ -39,6 +39,7 @@ import java.util.Vector;
 public class Playlists extends AppCompatActivity {
 
     private Button newPlaylistButton;
+    private  Button deletePlaylistButton;
     private Vector<String> playlistsNames;
 
     private ListView listView;
@@ -73,6 +74,8 @@ public class Playlists extends AppCompatActivity {
 
 
         newPlaylistButton = findViewById(R.id.new_play);
+        deletePlaylistButton=findViewById(R.id.delete_play);
+
         activity=this;
         restoreData();
         listView= findViewById(R.id.playlistsListView);
@@ -84,6 +87,13 @@ public class Playlists extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 addPlaylist();
+            }
+        });
+
+        deletePlaylistButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                deletePlaylist();
             }
         });
 
@@ -146,16 +156,69 @@ public class Playlists extends AppCompatActivity {
         dialog.show();
     }
 
+
+    private void deletePlaylist()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete playlist");
+
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.add_playlist, null);
+        builder.setView(dialogView);
+
+        EditText nameToDelete = dialogView.findViewById(R.id.editTextName);
+
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = nameToDelete.getText().toString();
+                if (name.isEmpty()==false)
+                {
+                    if(playlistsNames.contains(name))
+                    {
+                        playlistsNames.remove(name);
+                        playlistsTitles.remove(name);
+                        playlistsUri.remove(name);
+                        adapter.notifyDataSetChanged();
+                    }
+                    else
+                    {
+                        Toast toast = Toast.makeText(activity, "Wrong name", Toast.LENGTH_LONG);
+                        toast.show();
+                    }
+                }
+                else
+                {
+                    Toast toast = Toast.makeText(activity, "Wrong name", Toast.LENGTH_LONG);
+                    toast.show();
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
 //---------------------------------------------------------------------------
 
     private Vector<Uri> currentPlaylistUri;
     private Vector<String> currentPlaylistString;
-    boolean songAdded;
-    String currentName;
+    private boolean songAdded;
+    private String currentName;
+    private Button deleteSongButton;
 
     private void displayPlaylist(String name) {
         setContentView(R.layout.play);
         newSongButton=findViewById(R.id.new_play);
+        deleteSongButton= findViewById(R.id.delete_song);
+
         songAdded=false;
         currentName=name;
 
@@ -177,6 +240,14 @@ public class Playlists extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 addSong();
+            }
+        });
+
+
+        deleteSongButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                deleteSong();
             }
         });
 
@@ -226,6 +297,56 @@ public class Playlists extends AppCompatActivity {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("audio/*");
         chooseFileLauncher.launch(intent);
+    }
+
+    private void deleteSong()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete song");
+
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.add_playlist, null);
+        builder.setView(dialogView);
+
+        EditText nameToDelete = dialogView.findViewById(R.id.editTextName);
+
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = nameToDelete.getText().toString();
+                if (name.isEmpty()==false)
+                {
+                    if(currentPlaylistString.contains(name))
+                    {
+                        int position=currentPlaylistString.indexOf(name);
+                        currentPlaylistString.remove(position);
+                        currentPlaylistUri.remove(position);
+
+                        adapterPlaylist.notifyDataSetChanged();
+                    }
+                    else
+                    {
+                        Toast toast = Toast.makeText(activity, "Wrong name", Toast.LENGTH_LONG);
+                        toast.show();
+                    }
+                }
+                else
+                {
+                    Toast toast = Toast.makeText(activity, "Wrong name", Toast.LENGTH_LONG);
+                    toast.show();
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
 
@@ -328,7 +449,6 @@ public class Playlists extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         saveData();
-        //saveEmptyData();
     }
 
     @Override
@@ -337,8 +457,8 @@ public class Playlists extends AppCompatActivity {
       saveData();
     }
 
-    //DELETE LATER
-     private void saveEmptyData()
+    //Overwrites data in sharedPreferences with empty data. It has no use in app but is preserved for debugging.
+     /*private void saveEmptyData()
     {
         SharedPreferences sharedPreferences = activity.getSharedPreferences("StorageSharedPreferences", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -349,7 +469,7 @@ public class Playlists extends AppCompatActivity {
         editor.putString("selectedPlaylist","");
         editor.putInt("SelectedSong",0);
         editor.apply();
-    }
+    }*/
 
 
 }
