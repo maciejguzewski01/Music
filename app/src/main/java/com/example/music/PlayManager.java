@@ -21,6 +21,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
@@ -102,9 +104,6 @@ public class PlayManager {
     }
 
     boolean newSong = false;
-
-    private List<Uri> chosen_playlist = new ArrayList<>();
-    private int chosen_playlist_number = 0;
 
     private Vector<Integer> randomVector;
     private int nowPlayRandom = 0;
@@ -240,11 +239,11 @@ public class PlayManager {
             mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mediaPlayer) {
-                    if(chosen_playlist_number+1<chosen_playlist.size()) chosen_playlist_number++;
-                    else chosen_playlist_number = 0;
+                    if(selectedSong+1<selectedPlaylist.size()) selectedSong++;
+                    else selectedSong = 0;
                     newSong = true;
                     isPlaying=false;
-                    playFromUri(chosen_playlist.get(chosen_playlist_number));
+                    playFromUri(selectedPlaylist.get(selectedSong));
                 }
             });
 
@@ -296,7 +295,7 @@ public class PlayManager {
                     }
                     else
                     {
-                        playFromUri(chosen_playlist.get(chosen_playlist_number));
+                        playFromUri(selectedPlaylist.get(selectedSong));
                     }
                 }
             });
@@ -343,11 +342,11 @@ public class PlayManager {
         }
         else
         {
-            if(chosen_playlist_number-1>0) chosen_playlist_number--;
-            else chosen_playlist_number = chosen_playlist.size()-1;
+            if(selectedSong-1>0) selectedSong--;
+            else selectedSong = selectedPlaylist.size()-1;
 
             changeSongProcedures();
-            if(wasPlaying==true) playFromUri(chosen_playlist.get(chosen_playlist_number));
+            if(wasPlaying==true) playFromUri(selectedPlaylist.get(selectedSong));
         }
 
     }
@@ -377,11 +376,11 @@ public class PlayManager {
         }
         else
         {
-            if(chosen_playlist_number+1<chosen_playlist.size()) chosen_playlist_number++;
-            else chosen_playlist_number = 0;
+            if(selectedSong+1<selectedPlaylist.size()) selectedSong++;
+            else selectedSong=0;
 
             changeSongProcedures();
-            if(wasPlaying==true) playFromUri(chosen_playlist.get(chosen_playlist_number));
+            if(wasPlaying==true) playFromUri(selectedPlaylist.get(selectedSong));
         }
 
     }
@@ -395,10 +394,21 @@ public class PlayManager {
         }
         else if (mode == Mode.RANDOM) play(randomVector.elementAt(nowPlayRandom));
         else {
-            if (chosen_playlist.isEmpty() == true) {
+            getSelectedPlaylistData();
+            if(selectedPlaylist!=null)
+            {
+                if(selectedPlaylist.isEmpty()==true)
+                {
+                    Toast toast = Toast.makeText(activity, "Chose a playlist!", Toast.LENGTH_LONG);
+                    toast.show();
+                }
+                else playFromUri(selectedPlaylist.get(selectedSong));
+            }
+            else
+            {
                 Toast toast = Toast.makeText(activity, "Chose a playlist!", Toast.LENGTH_LONG);
                 toast.show();
-            } else playFromUri(chosen_playlist.get(chosen_playlist_number));
+            }
         }
     }
 
@@ -423,6 +433,13 @@ public class PlayManager {
         String jsonFilesUri=gson.toJson(filesUriStrings);
         editor.putString("filesUri",jsonFilesUri);
 
+        editor.putInt("selectedSong",selectedSong);
+        if(selectedPlaylist!=null)
+        {
+            String jsonSelectedPlaylist=gson.toJson(selectedPlaylist);
+            editor.putString("selectedPlaylist",jsonSelectedPlaylist);
+        }
+
         editor.apply();
     }
 
@@ -442,19 +459,36 @@ public class PlayManager {
         randomVector = gson.fromJson(jsonRandomVector,typeRV);
 
         String jsonFilesUri = sharedPreferences.getString("filesUri", "");
-        if(jsonFilesUri.isEmpty()) return;
-        Type typeFU = new TypeToken<Vector<String>>() {}.getType();
-        Vector<String> uriStrings = gson.fromJson(jsonFilesUri, typeFU);
-
-        filesUri.clear();
-        for (String uriString : uriStrings) {
-            filesUri.add(Uri.parse(uriString));
+        if(jsonFilesUri.isEmpty()==false)
+        {
+            Type typeFU = new TypeToken<Vector<String>>() {}.getType();
+            Vector<String> uriStrings = gson.fromJson(jsonFilesUri, typeFU);
+            filesUri.clear();
+            for (String uriString : uriStrings) {
+                filesUri.add(Uri.parse(uriString));
+            }
         }
 
 
+
+
+        selectedSong=sharedPreferences.getInt("selectedSong",0);
+        String jsonSelectedPlaylist = sharedPreferences.getString("selectedPlaylist", "");
+        if(jsonSelectedPlaylist.isEmpty()==false)
+        {
+            try {
+                Type typeSP = new TypeToken<Vector<String>>() {}.getType();
+                Vector<String> selectedPlaylistUriStrings = gson.fromJson(jsonSelectedPlaylist, typeSP);
+                selectedPlaylist.clear();
+                for (String selectedPlaylistUriString : selectedPlaylistUriStrings) {
+                    selectedPlaylist.add(Uri.parse(selectedPlaylistUriString));
+                }
+            }catch (JsonSyntaxException e)
+            {
+                selectedPlaylist=new Vector<>();
+            }
+        }
         setInfoAndSeekBar();
-
-
     }
 
     private void setInfoAndSeekBar()
@@ -469,10 +503,40 @@ public class PlayManager {
             setInfo(nowPlayRandom);
             mediaPlayer = MediaPlayer.create(activity, filesUri.elementAt(nowPlayRandom));
         }
+        else//mode==Mode.PLAYLIST
+        {
+            if(selectedPlaylist==null)
+            {
+                mode=Mode.ORDER;
+                setInfo(nowPlay);
+                mediaPlayer = MediaPlayer.create(activity, filesUri.elementAt(nowPlay));
+            }
+            else if (selectedPlaylist.isEmpty()==true)
+            {
+                mode=Mode.ORDER;
+                setInfo(nowPlay);
+                mediaPlayer = MediaPlayer.create(activity, filesUri.elementAt(nowPlay));
+            }
+            else
+            {
+                setInfo(filesUri.indexOf(selectedPlaylist.elementAt(selectedSong)));
+                mediaPlayer = MediaPlayer.create(activity, selectedPlaylist.elementAt(selectedSong));
+            }
+        }
         mediaPlayer.seekTo(songFragment);
         double fragment_d = (100.0 * songFragment) / mediaPlayer.getDuration();
         int fragment = ((int) fragment_d);
         seekBar.setProgress(fragment);
+    }
+
+    private ChosenPlaylist chosenPlaylist;
+    private Vector<Uri> selectedPlaylist=new Vector<>();
+    private int selectedSong=0;
+    private void getSelectedPlaylistData()
+    {
+        chosenPlaylist=ChosenPlaylist.getInstance();
+        if((chosenPlaylist.getSelectedPlaylist()!=null)&&(chosenPlaylist.getSelectedPlaylist().isEmpty()==false))selectedPlaylist=chosenPlaylist.getSelectedPlaylist();
+        selectedSong=chosenPlaylist.getSelectedSong();
     }
 
 

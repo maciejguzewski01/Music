@@ -27,6 +27,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
@@ -59,8 +60,7 @@ public class Playlists extends AppCompatActivity {
 
     private Vector<Uri> selectedPlaylist;
     private int selectedSong;
-    public Vector<Uri> getSelectedPlaylist(){return selectedPlaylist;}
-    public int getSelectedSong(){return selectedSong;}
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -210,7 +210,6 @@ public class Playlists extends AppCompatActivity {
 
     private Vector<Uri> currentPlaylistUri;
     private Vector<String> currentPlaylistString;
-    private boolean songAdded;
     private String currentName;
     private Button deleteSongButton;
 
@@ -219,7 +218,6 @@ public class Playlists extends AppCompatActivity {
         newSongButton=findViewById(R.id.new_play);
         deleteSongButton= findViewById(R.id.delete_song);
 
-        songAdded=false;
         currentName=name;
 
         currentPlaylistUri=new Vector<>();
@@ -258,6 +256,31 @@ public class Playlists extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 selectedSong=position;
                 selectedPlaylist=playlistsUri.get(name);
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                builder.setTitle("Playlist chosen");
+
+                LayoutInflater inflater = getLayoutInflater();
+                View dialogView = inflater.inflate(R.layout.playlistrow, null);
+                builder.setView(dialogView);
+
+                builder.setPositiveButton("Go Back To Main Screen", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                });
+
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
             }
         });
 
@@ -278,8 +301,6 @@ public class Playlists extends AppCompatActivity {
                         MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
                         metadataRetriever.setDataSource(activity, uriTree);
                         String songTitle = metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-
-                        songAdded=true;
 
                         playlistsUri.get(currentName).add(uriTree);
                         playlistsTitles.get(currentName).add(songTitle);
@@ -394,17 +415,28 @@ public class Playlists extends AppCompatActivity {
         String jsonSelectedPlaylist=sharedPreferences.getString("selectedPlaylist","");
         if(jsonSelectedPlaylist.isEmpty()==false)
         {
-            Type typeSP = new TypeToken<Vector<String>>() {}.getType();
+
+            try {
+                Type typeSP = new TypeToken<Vector<String>>() {}.getType();
+                Vector<String> selectedPlaylistUriStrings = gson.fromJson(jsonSelectedPlaylist, typeSP);
+
+                selectedPlaylist.clear();
+                for (String selectedPlaylistUriString : selectedPlaylistUriStrings) {
+                    selectedPlaylist.add(Uri.parse(selectedPlaylistUriString));
+                }
+            }catch (JsonSyntaxException e)
+            {
+                selectedPlaylist=new Vector<>();
+            }
+            /*Type typeSP = new TypeToken<Vector<String>>() {}.getType();
             Vector<String> selectedPlaylistUriStrings = gson.fromJson(jsonSelectedPlaylist, typeSP);
 
             selectedPlaylist.clear();
             for (String selectedPlaylistUriString : selectedPlaylistUriStrings) {
                 selectedPlaylist.add(Uri.parse(selectedPlaylistUriString));
-            }
+            }*/
         }
         if(selectedPlaylist==null) selectedPlaylist=new Vector<>();
-
-       
 
 
     }
@@ -442,6 +474,8 @@ public class Playlists extends AppCompatActivity {
         editor.putInt("SelectedSong",selectedSong);
 
         editor.apply();
+
+       sendDataToMainActivity();
     }
 
 
@@ -456,6 +490,17 @@ public class Playlists extends AppCompatActivity {
         super.onDestroy();
       saveData();
     }
+
+
+    private ChosenPlaylist chosenPlaylist;
+    void sendDataToMainActivity()
+    {
+        chosenPlaylist=ChosenPlaylist.getInstance();
+        chosenPlaylist.setSelectedPlaylist(selectedPlaylist);
+        chosenPlaylist.setSelectedSong(selectedSong);
+    }
+
+
 
     //Overwrites data in sharedPreferences with empty data. It has no use in app but is preserved for debugging.
      /*private void saveEmptyData()
