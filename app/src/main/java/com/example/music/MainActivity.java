@@ -5,16 +5,20 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -75,10 +79,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (playManager.getIsChosen() == false) {
-            Context context = getApplicationContext();
-            CharSequence text = "Chose a folder!";
-            int duration = Toast.LENGTH_LONG;
-            Toast toast = Toast.makeText(context, text, duration);
+            Toast toast = Toast.makeText(getApplicationContext(), "Chose a folder!", Toast.LENGTH_LONG);
             toast.show();
         }
         handleButtons();
@@ -102,6 +103,16 @@ public class MainActivity extends AppCompatActivity {
         playManager.setIsPlaying(false);
         playManager.setMode(Mode.ORDER);
         playManager.intro(seekBar,buttonPlay,textTitle,textArtist,textAlbum,imageCover);
+    }
+
+
+    private void makeSureDataIsSet()
+    {
+        if((playManager.getFilesUri()==null)&&(introduction.getFilesUri()!=null))
+        {
+            playManager.setIsChosen(introduction.getIsChosen());
+            playManager.setFilesUri(introduction.getFilesUri());
+        }
     }
 
     private void handleButtons()
@@ -137,11 +148,7 @@ public class MainActivity extends AppCompatActivity {
         buttonPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((playManager.getFilesUri()==null)&&(introduction.getFilesUri()!=null))
-                {
-                    playManager.setIsChosen(introduction.getIsChosen());
-                    playManager.setFilesUri(introduction.getFilesUri());
-                }
+                makeSureDataIsSet();
                 playManager.playOrPauseSong();
             }
         });
@@ -149,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         buttonNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                makeSureDataIsSet();
                 playManager.playNextSong();
             }
         });
@@ -156,11 +164,13 @@ public class MainActivity extends AppCompatActivity {
         buttonPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                makeSureDataIsSet();
                 playManager.playPreviousSong();
             }
         });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (playManager.getIsChosen() == false) return;
@@ -173,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 if (playManager.getIsChosen() == false) return;
-
+                makeSureDataIsSet();
                 int fullLength = playManager.getMediaPlayer().getDuration();
 
                 playManager.setSongFragment((songProgress * fullLength) / 100);
@@ -188,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
         buttonPlayType.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                makeSureDataIsSet();
                 if (playManager.getMode() == Mode.ORDER) {
                     playManager.setMode(Mode.RANDOM);
                     buttonPlayType.setImageResource(R.drawable.random);
@@ -210,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (playManager.getIsChosen() == false) return;
+                makeSureDataIsSet();
                 MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
 
                 metadataRetriever.setDataSource(con, playManager.getFilesUri().get(playManager.getNowPlay()));
@@ -227,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
         buttonPlaylists.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                makeSureDataIsSet();
                 Intent intent = new Intent(MainActivity.this, Playlists.class);
                 startActivityForResult(intent,1);
             }
